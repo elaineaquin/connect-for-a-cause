@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sentMessages     PrivateMessage[] @relation("SentMessages")
+  receivedMessages PrivateMessage[] @relation("ReceivedMessages")
+  profile          Profile?         @relation("UserProfile")
+  projects         Project[]
+  privateRooms     PrivateRoom[]
+  spaceMessages    SpaceMessage[]
+  spaceRooms       SpaceRoom[]      @relation("UserSpaceRooms")
+  spaceRoom        SpaceRoom[]      @relation("OwnedSpaceRooms")
+}
+
+model Profile {
+  id                      Int      @id @default(autoincrement())
+  userId                  Int      @unique
+  primaryEducation        String?
+  lowerSecondaryEducation String?
+  upperSecondaryEducation String?
+  higherEducation         String?
+  currentCity             String?
+  hometown                String?
+  validId                 String[]
+  instagram               String?
+  linkedIn                String?
+  facebook                String?
+  profile                 Bytes?
+  user                    User     @relation("UserProfile", fields: [userId], references: [id])
+}
+
+model PrivateMessage {
+  id           String   @id @default(uuid())
+  senderId     Int
+  clientId     String
+  recipientId  Int
+  connectionId String
+  roomId       String
+  text         String
+  date         DateTime @default(now())
+  read         Boolean
+  name         String
+
+  sender    User        @relation("SentMessages", fields: [senderId], references: [id])
+  recipient User        @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  room      PrivateRoom @relation(fields: [roomId], references: [id])
+}
+
+model SpaceMessage {
+  id           String   @id @default(uuid())
+  roomId       String
+  text         String
+  date         DateTime @default(now())
+  read         Boolean
+  senderId     Int
+  connectionId String
+  clientId     String
+  name         String
+
+  room   SpaceRoom @relation(fields: [roomId], references: [id])
+  sender User      @relation(fields: [senderId], references: [id])
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      Int
+  title       String
+  content     String
+  location    String
+  sdg         String
+  status      String
+  photos      Bytes[]
+  endDate     DateTime
+  name        String
+  phone       String
+  description String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+
+  author User @relation(fields: [userId], references: [id])
+}
+
+model PrivateRoom {
+  id       String           @id @default(uuid())
+  users    User[]
+  messages PrivateMessage[]
+}
+
+model SpaceRoom {
+  id            String         @id @default(uuid())
+  name          String
+  ownerId       Int
+  privacy       String
+  purpose       String
+  projectId     String?        @unique
+  profile       Bytes?
+  spaceMessages SpaceMessage[]
+  owner         User           @relation("OwnedSpaceRooms", fields: [ownerId], references: [id])
+  users         User[]         @relation("UserSpaceRooms")
+}
